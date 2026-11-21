@@ -1,0 +1,417 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Suffix Tree DNA Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: lab-bench two-pane tool. Inputs on the left; genome with highlighted motifs, tree view, scalability charts, tables and console output on the right. Stacks on phones. */
+:root{
+  --bg:#f4f6f8; --surface:#ffffff; --surface2:#eef1f5; --fg:#141a22; --muted:#5a6676; --line:#d9dfe7;
+  --c1:#0d8a8c; --c2:#d1560c; --accent:#0d6e70; --accent-fg:#ffffff; --ok:#1a7f3c; --bad:#b3261e; --grid:#e3e8ee; --hl:#bfe9ea; --hl2:#ffd9bf;
+  --font-d:'Space Grotesk',system-ui,sans-serif; --font-b:'Inter',system-ui,sans-serif; --font-m:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141a; --surface:#171e27; --surface2:#1e2732; --fg:#e8edf3; --muted:#93a0b1; --line:#2b3643;
+  --c1:#3fc3c5; --c2:#f28c4e; --accent:#3fc3c5; --accent-fg:#06201f; --ok:#52c77a; --bad:#ff8a80; --grid:#242f3b; --hl:#1d5a5c; --hl2:#6b3a1c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141a; --surface:#171e27; --surface2:#1e2732; --fg:#e8edf3; --muted:#93a0b1; --line:#2b3643;
+  --c1:#3fc3c5; --c2:#f28c4e; --accent:#3fc3c5; --accent-fg:#06201f; --ok:#52c77a; --bad:#ff8a80; --grid:#242f3b; --hl:#1d5a5c; --hl2:#6b3a1c; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-b);font-size:14px;line-height:1.5;
+  padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.tag{font:500 11px var(--font-m);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font:700 clamp(24px,4vw,34px)/1.15 var(--font-d);margin:4px 0 8px;text-wrap:balance}
+h2{font:700 16px var(--font-d);margin:0 0 12px}
+.lede{max-width:72ch;color:var(--muted);margin:0}
+.grid{display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.col{display:flex;flex-direction:column;gap:20px;min-width:0}
+label{display:block;font-weight:500;font-size:13px;margin-bottom:4px}
+.hint{font-size:12px;color:var(--muted);margin:3px 0 0}
+.field{margin-bottom:14px}
+input[type=text],input[type=number]{width:100%;box-sizing:border-box;font:400 14px var(--font-m);padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface2);color:var(--fg)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+button{font:600 14px var(--font-b);padding:9px 16px;border-radius:6px;border:1px solid var(--line);background:var(--surface2);color:var(--fg);cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+button:disabled{opacity:.55;cursor:wait}
+.err{color:var(--bad);font-size:13px;margin-top:10px;min-height:1em}
+.status{font:400 12px var(--font-m);color:var(--muted);margin-top:10px;min-height:1.2em}
+.sec{font:500 11px var(--font-m);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:18px 0 10px;padding-top:12px;border-top:1px solid var(--line)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-family:var(--font-m);font-size:13px}
+th,td{padding:7px 10px;text-align:right;white-space:nowrap}
+th{font:500 11px var(--font-m);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+td.l{text-align:left;white-space:normal;word-break:break-word}
+.swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:baseline}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:1000px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.stat b{display:block;font:700 26px/1.1 var(--font-d);font-variant-numeric:tabular-nums;word-break:break-all}
+.stat span{font-size:12px;color:var(--muted)}
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+@media (max-width:1000px){.charts{grid-template-columns:minmax(0,1fr)}}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:8px}
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{font-family:var(--font-m);font-size:14px;fill:var(--muted)}
+svg .val{fill:var(--fg)}
+pre{margin:0;font:400 12px/1.5 var(--font-m);background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:12px;overflow-x:auto;white-space:pre}
+.analysis p{margin:0 0 10px;max-width:80ch}
+.badges{display:flex;gap:6px;flex-wrap:wrap}
+.badge{display:inline-block;font:500 12px var(--font-m);padding:2px 8px;border-radius:99px;border:1px solid var(--line)}
+.badge.ok{color:var(--ok);border-color:var(--ok)} .badge.no{color:var(--bad);border-color:var(--bad)}
+.genome{font:400 14px/1.9 var(--font-m);word-break:break-all;letter-spacing:.04em;background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.genome mark{background:var(--hl);color:var(--fg);border-radius:3px;padding:1px 0}
+.genome mark.rep{background:var(--hl2)}
+details summary{cursor:pointer;font:600 14px var(--font-b);margin-bottom:8px}
+#tip{position:fixed;pointer-events:none;background:var(--fg);color:var(--bg);font:400 12px var(--font-m);padding:5px 8px;border-radius:5px;z-index:20;display:none;max-width:280px}
+.empty{color:var(--muted);padding:24px 0;text-align:center}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="tag">CP25C01 · Advanced Data Structures · Ex. 4</div>
+    <h1>Suffix tree DNA matching</h1>
+    <p class="lede">Build a suffix tree with Ukkonen's linear-time algorithm, find every occurrence of your motifs, and locate the longest repeated substring. Then benchmark the tree against a naive scan on random genomes of growing length.</p>
+  </header>
+
+  <div class="grid">
+    <form class="panel" id="form" autocomplete="off">
+      <h2>Inputs</h2>
+      <div class="field">
+        <label for="genome">Genome (A, C, G, T)</label>
+        <input type="text" id="genome" value="ATGCGATACGCTTGAGGCTATGCGATACG" spellcheck="false">
+        <p class="hint">10 to 3,000 bases. Spaces and lower case are tidied automatically.</p>
+      </div>
+      <div class="field">
+        <label for="motifs">Motifs to search</label>
+        <input type="text" id="motifs" value="ATGCG, GATAC, TTGA, CCCC" spellcheck="false">
+        <p class="hint">Comma separated, up to 12 motifs of A, C, G, T.</p>
+      </div>
+      <div class="sec">Scalability benchmark</div>
+      <div class="field">
+        <label for="lens">Genome lengths</label>
+        <input type="text" id="lens" value="10000, 50000, 200000" inputmode="numeric">
+        <p class="hint">Up to 5 values from 1,000 to 300,000. Lab values: 10^4, 5×10^4, 2×10^5.</p>
+      </div>
+      <div class="two">
+        <div class="field"><label for="k">Motifs per run</label><input type="number" id="k" value="100" min="10" max="1000" step="10"></div>
+        <div class="field"><label for="m">Motif length</label><input type="number" id="m" value="12" min="4" max="30" step="1"></div>
+      </div>
+      <div class="field">
+        <label for="seed">Random seed</label>
+        <input type="number" id="seed" value="3" step="1">
+      </div>
+      <div class="btns">
+        <button type="submit" class="primary" id="run">Build and search</button>
+        <button type="button" id="reset">Reset to lab values</button>
+      </div>
+      <div class="err" id="err" role="alert"></div>
+      <div class="status" id="status">Ready.</div>
+    </form>
+
+    <div class="col" id="results">
+      <div class="panel"><div class="empty">Building the first suffix tree…</div></div>
+    </div>
+  </div>
+</div>
+<div id="tip"></div>
+
+<script>
+(function(){
+"use strict";
+let rs=3;
+function seedRng(s){ rs=(s>>>0)||1; }
+function rnd(){ rs=(rs+0x6D2B79F5)>>>0; let t=rs; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }
+const randInt=n=>Math.floor(rnd()*n);
+const $=id=>document.getElementById(id);
+const tick=()=>new Promise(r=>setTimeout(r,0));
+const fmt=(x,d=1)=>x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const msf=v=>v>=100?fmt(v,0):v>=10?fmt(v,1):v>=1?fmt(v,2):fmt(v,3);
+
+/* ---------- Ukkonen suffix tree ---------- */
+class Nd{ constructor(start,end){ this.ch=new Map(); this.start=start; this.end=end; this.link=null; this.idx=-1; } }
+class SuffixTree{
+  constructor(text){
+    this.t=text+'$'; this.n=this.t.length; this.leafEnd={v:-1};
+    this.root=new Nd(-1,{v:-1}); this.root.link=this.root;
+    this.nodes=1; this.build(); this.label();
+  }
+  len(nd){ return nd.end.v-nd.start+1; }
+  build(){
+    const t=this.t, root=this.root; let an=root, ae=-1, al=0, rem=0;
+    for(let i=0;i<this.n;i++){
+      this.leafEnd.v=i; rem++; let last=null;                       // rule 1: all leaves grow
+      while(rem>0){
+        if(al===0) ae=i;
+        const c=t[ae], nxt=an.ch.get(c);
+        if(nxt===undefined){                                         // rule 2: new leaf
+          an.ch.set(c,new Nd(i,this.leafEnd)); this.nodes++;
+          if(last){ last.link=an; last=null; }
+        } else {
+          const el=this.len(nxt);
+          if(al>=el){ ae+=el; al-=el; an=nxt; continue; }            // skip/count
+          if(t[nxt.start+al]===t[i]){                                // rule 3: already present
+            if(last&&an!==root){ last.link=an; last=null; }
+            al++; break;
+          }
+          const split=new Nd(nxt.start,{v:nxt.start+al-1}); this.nodes+=2; // split edge
+          an.ch.set(c,split);
+          split.ch.set(t[i],new Nd(i,this.leafEnd));
+          nxt.start+=al; split.ch.set(t[nxt.start],nxt);
+          split.link=root;
+          if(last) last.link=split;
+          last=split;
+        }
+        rem--;
+        if(an===root&&al>0){ al--; ae=i-rem+1; }
+        else if(an!==root){ an=an.link; }
+      }
+    }
+  }
+  label(){
+    const st=[[this.root,0]];
+    while(st.length){ const [nd,d]=st.pop(); if(nd.ch.size===0) nd.idx=this.n-d; for(const c of nd.ch.values()) st.push([c,d+this.len(c)]); }
+  }
+  findAll(pat){
+    let nd=this.root, i=0; const t=this.t;
+    while(i<pat.length){
+      const ch=nd.ch.get(pat[i]); if(ch===undefined) return [];
+      let j=ch.start;
+      while(j<=ch.end.v&&i<pat.length){ if(t[j]!==pat[i]) return []; i++; j++; }
+      nd=ch;
+    }
+    const res=[], st=[nd];
+    while(st.length){ const x=st.pop(); if(x.ch.size===0) res.push(x.idx); else for(const c of x.ch.values()) st.push(c); }
+    return res.sort((a,b)=>a-b);
+  }
+  longestRepeat(){
+    let best=[0,0]; const st=[[this.root,0]];
+    while(st.length){
+      const [nd,d]=st.pop();
+      if(nd.ch.size&&d>best[0]&&nd!==this.root) best=[d,nd.end.v-d+1];
+      for(const c of nd.ch.values()) if(c.ch.size) st.push([c,d+this.len(c)]);
+    }
+    return this.t.substr(best[1],best[0]);
+  }
+  outline(maxLines){
+    const lines=[]; const t=this.t;
+    const rec=(nd,prefix)=>{
+      const kids=[...nd.ch.entries()].sort((a,b)=>a[0]<b[0]?-1:1);
+      kids.forEach(([c,ch],i)=>{
+        if(lines.length>=maxLines) return;
+        const lastKid=i===kids.length-1, label=t.substring(ch.start,ch.end.v+1);
+        lines.push(prefix+(lastKid?'└─ ':'├─ ')+label+(ch.ch.size===0?'   ← suffix '+ch.idx:''));
+        rec(ch,prefix+(lastKid?'   ':'│  '));
+      });
+    };
+    lines.push('root'); rec(this.root,'');
+    return lines;
+  }
+}
+function naiveFind(text,pat){
+  const out=[], n=text.length, m=pat.length;
+  for(let i=0;i<=n-m;i++){ let j=0; while(j<m&&text.charCodeAt(i+j)===pat.charCodeAt(j)) j++; if(j===m) out.push(i); }
+  return out;
+}
+const same=(a,b)=>a.length===b.length&&a.every((v,i)=>v===b[i]);
+function hasRepeat(g,L){ const s=new Set(); for(let i=0;i+L<=g.length;i++){ const x=g.substr(i,L); if(s.has(x)) return true; s.add(x); } return false; }
+function randGenome(L){ const a='ACGT'; let s=''; const parts=[]; for(let i=0;i<L;i++){ s+=a[randInt(4)]; if(s.length>=8192){ parts.push(s); s=''; } } parts.push(s); return parts.join(''); }
+
+/* ---------- run ---------- */
+async function runAll(cfg,setStatus){
+  seedRng(cfg.seed);
+  const out={cfg}; const ok={demo:true,repeat:true,scale:true};
+
+  setStatus('building the demo suffix tree…'); await tick();
+  const g=cfg.genome, st=new SuffixTree(g);
+  const hits=cfg.motifs.map(m=>{ const p=st.findAll(m), nv=naiveFind(g,m); if(!same(p,nv)) ok.demo=false; return {m,pos:p}; });
+  const lr=st.longestRepeat(), lrPos=lr.length?st.findAll(lr):[];
+  if(lr.length&&(lrPos.length<2||hasRepeat(g,lr.length+1))) ok.repeat=false;
+  if(!lr.length&&hasRepeat(g,1)) ok.repeat=false;
+  out.demo={hits,lr,lrPos,nodes:st.nodes,outline:g.length<=40?st.outline(300):null};
+
+  // warm-up so the first timed build is not penalised by JIT compilation
+  new SuffixTree(randGenome(5000));
+  const rows=[];
+  for(const L of cfg.lens){
+    setStatus(`n = ${L.toLocaleString()}: building suffix tree…`); await tick();
+    const genome=randGenome(L);
+    let t0=performance.now(); const tree=new SuffixTree(genome); const tb=performance.now()-t0;
+    const k=Math.min(cfg.k,L-cfg.m), seen=new Set(); const motifs=[];
+    while(motifs.length<k){ const p=randInt(L-cfg.m); if(!seen.has(p)){ seen.add(p); motifs.push(genome.substr(p,cfg.m)); } }
+    setStatus(`n = ${L.toLocaleString()}: querying ${k} motifs…`); await tick();
+    let r1; t0=performance.now(); r1=motifs.map(x=>tree.findAll(x)); let tq=performance.now()-t0;
+    if(tq<10){ const reps=Math.min(500,Math.ceil(12/Math.max(tq,0.05))); t0=performance.now(); for(let q=0;q<reps;q++) motifs.map(x=>tree.findAll(x)); tq=(performance.now()-t0)/reps; }
+    setStatus(`n = ${L.toLocaleString()}: naive scan…`); await tick();
+    t0=performance.now(); const r2=motifs.map(x=>naiveFind(genome,x)); const tn=performance.now()-t0;
+    const good=r1.every((a,i)=>same(a,r2[i])); if(!good) ok.scale=false;
+    const perTree=tq/k, perNaive=tn/k;
+    rows.push({L,nodes:tree.nodes,tb,tq,tn,k,speed:tn/tq,breakeven:perNaive>perTree?Math.ceil(tb/(perNaive-perTree)):Infinity,good});
+  }
+  out.rows=rows; out.ok=ok;
+  return out;
+}
+
+/* ---------- charts ---------- */
+const kfmt=v=>v>=1e6?(v/1e6)+'M':v>=1000?(v/1000)+'k':String(+v.toPrecision(3));
+function niceTicks(max,n){
+  const raw=max/n, mag=Math.pow(10,Math.floor(Math.log10(raw))), r=raw/mag;
+  const step=(r<=1?1:r<=2?2:r<=5?5:10)*mag, o=[];
+  for(let v=0;;v+=step){ o.push(v); if(v>=max-step*0.001) break; }
+  return o;
+}
+function lineChart({xs,series,ref,logY=false,unit='ms',label=''}){
+  const W=560,Ht=320,L=56,R=22,T=34,B=48, iw=W-L-R, ih=Ht-T-B;
+  let x0=Math.min(...xs), x1=Math.max(...xs); if(x0===x1){ x0*=0.5; x1*=1.5; }
+  const padX=(x1-x0)*0.06, X=v=>L+((v-(x0-padX))/((x1+padX)-(x0-padX)))*iw;
+  const all=series.flatMap(s=>s.ys).concat(ref?ref.ys:[]);
+  const mx=Math.max(...all), mn=Math.min(...all);
+  let ticks,lo=0,top;
+  if(logY){ lo=Math.pow(10,Math.floor(Math.log10(mn*0.8))); top=Math.pow(10,Math.ceil(Math.log10(mx*1.25))); ticks=[]; for(let v=lo;v<=top*1.0001;v*=10) ticks.push(v); }
+  else { ticks=niceTicks(mx*1.12,4); top=ticks[ticks.length-1]; }
+  const Y=v=>T+ih-(logY?(Math.log10(Math.max(v,lo))-Math.log10(lo))/(Math.log10(top)-Math.log10(lo)):v/top)*ih;
+  let s=`<svg viewBox="0 0 ${W} ${Ht}" role="img" aria-label="${esc(label)}">`;
+  ticks.forEach(t=>{ s+=`<line x1="${L}" x2="${W-R}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--grid)"/><text x="${L-6}" y="${Y(t)+4}" text-anchor="end">${kfmt(t)}</text>`; });
+  let lastX=-99; xs.forEach(v=>{ const x=X(v); if(x-lastX<48) return; lastX=x; s+=`<line x1="${x}" x2="${x}" y1="${T+ih}" y2="${T+ih+4}" stroke="var(--muted)"/><text x="${x}" y="${T+ih+19}" text-anchor="middle" style="font-size:12px">${kfmt(v)}</text>`; });
+  s+=`<text x="${L+iw/2}" y="${Ht-6}" text-anchor="middle" style="font-size:13px">genome length n</text>`;
+  s+=`<line x1="${L}" x2="${W-R}" y1="${T+ih}" y2="${T+ih}" stroke="var(--muted)"/>`;
+  if(ref){ s+=`<path d="M${xs.map((v,i)=>X(v)+','+Y(ref.ys[i])).join('L')}" fill="none" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 4"/>`; }
+  series.forEach(se=>{
+    const pts=xs.map((v,i)=>[X(v),Y(se.ys[i]),se.ys[i],v]);
+    if(pts.length>1) s+=`<path d="M${pts.map(p=>p[0]+','+p[1]).join('L')}" fill="none" stroke="${se.color}" stroke-width="2"/>`;
+    pts.forEach(p=>{ s+=`<circle cx="${p[0]}" cy="${p[1]}" r="4.5" fill="${se.color}" stroke="var(--surface)" stroke-width="2" data-tip="${esc(se.name)}: ${msf(p[2])} ms at n = ${p[3].toLocaleString()}"/>`;
+      s+=`<text class="val" x="${p[0]}" y="${p[1]-10}" text-anchor="middle" style="font-size:11px">${msf(p[2])}</text>`; });
+  });
+  s+=`<text x="${L}" y="${T-14}" style="font-size:12px">${unit}${logY?' (log scale)':''}</text></svg>`;
+  return s;
+}
+const sw=(c,t)=>`<span><span class="swatch" style="background:${c}"></span>${t}</span>`;
+
+/* ---------- render ---------- */
+function genomeHtml(g,hits,lr,lrPos){
+  const cov=new Uint8Array(g.length);
+  hits.forEach(h=>h.pos.forEach(p=>{ for(let i=0;i<h.m.length;i++) cov[p+i]=1; }));
+  let html='',i=0;
+  while(i<g.length){ let j=i; while(j<g.length&&cov[j]===cov[i]) j++; const seg=g.slice(i,j); html+=cov[i]?`<mark>${seg}</mark>`:seg; i=j; }
+  return html;
+}
+function repHtml(g,lr,lrPos){
+  if(!lr.length) return esc(g);
+  const cov=new Uint8Array(g.length); lrPos.forEach(p=>{ for(let i=0;i<lr.length;i++) cov[p+i]=1; });
+  let html='',i=0; while(i<g.length){ let j=i; while(j<g.length&&cov[j]===cov[i]) j++; const seg=g.slice(i,j); html+=cov[i]?`<mark class="rep">${seg}</mark>`:seg; i=j; }
+  return html;
+}
+function render(res){
+  const {cfg,demo,rows,ok}=res, g=cfg.genome, big=rows[rows.length-1];
+  const allOk=ok.demo&&ok.scale;
+  const stats=`<div class="stats">
+    <div class="stat"><b>${demo.lr.length?demo.lr.length:'0'}</b><span>length of the longest repeated substring${demo.lr?`: ${esc(demo.lr.length>14?demo.lr.slice(0,14)+'…':demo.lr)}`:''}</span></div>
+    <div class="stat"><b>${msf(big.tb)} ms</b><span>build time at n = ${big.L.toLocaleString()}</span></div>
+    <div class="stat"><b>${msf(big.tq)} ms</b><span>${big.k} motif queries at n = ${big.L.toLocaleString()}</span></div>
+    <div class="stat"><b>×${fmt(big.speed,0)}</b><span>faster than the naive scan at n = ${big.L.toLocaleString()}</span></div></div>`;
+
+  const xs=rows.map(r=>r.L);
+  const c1=lineChart({xs,series:[{name:'Build time',color:'var(--c1)',ys:rows.map(r=>r.tb)}],ref:{ys:rows.map(r=>rows[0].tb*r.L/rows[0].L)},label:'Suffix tree build time vs genome length'});
+  const c2=lineChart({xs,series:[{name:'Suffix tree queries',color:'var(--c1)',ys:rows.map(r=>r.tq)},{name:'Naive scans',color:'var(--c2)',ys:rows.map(r=>r.tn)}],logY:true,label:'Query time vs genome length'});
+
+  const motifRows=demo.hits.map(h=>`<tr><td>${esc(h.m)}</td><td class="l">${h.pos.length?'['+h.pos.join(', ')+']':'none'}</td><td>${h.pos.length}</td></tr>`).join('');
+  const scaleRows=rows.map(r=>`<tr><td>${r.L.toLocaleString()}</td><td>${r.nodes.toLocaleString()}</td><td>${msf(r.tb)}</td><td>${msf(r.tq)}</td><td>${msf(r.tn)}</td><td>${fmt(r.speed,0)}×</td><td>${isFinite(r.breakeven)?r.breakeven:'–'}</td><td>${r.good?'✓':'✗'}</td></tr>`).join('');
+
+  const L=[];
+  L.push('SUFFIX TREE (UKKONEN) - DNA SEQUENCE MATCHING','='.repeat(62),'Genome : '+g);
+  demo.hits.forEach(h=>L.push(`Motif ${h.m.padEnd(6)}-> positions [${h.pos.join(', ')}]`));
+  L.push('Longest repeated substring: '+(demo.lr||'(none)'),'',`Scalability on synthetic genome (A,C,G,T uniform)`,`${'Length'.padStart(9)} | ${'Build ms'.padStart(9)} | ${('Query ms ('+cfg.k+' motifs)').padStart(21)} | ${'Naive ms'.padStart(9)}`);
+  rows.forEach(r=>L.push(`${r.L.toLocaleString().padStart(9)} | ${fmt(r.tb).replace(/,/g,'').padStart(9)} | ${fmt(r.tq,2).padStart(21)} | ${fmt(r.tn).replace(/,/g,'').padStart(9)}`));
+  L.push(allOk?'All suffix-tree results verified against naive scan.':'Verification FAILED for at least one result.');
+
+  const growth=rows.length>1?big.tb/rows[0].tb:null, lenGrowth=rows.length>1?big.L/rows[0].L:null;
+  const analysis=`
+   <p><b>Construction.</b> ${growth?`Genome length grew ${fmt(lenGrowth,0)}× and build time grew ${fmt(growth,1)}×. The dashed line shows exact linear growth from the first point. Staying close to it is consistent with Ukkonen's O(n) bound; a small upward bend comes from memory and hash-map overhead at larger n.`:'Add more genome lengths to see how construction time grows. Ukkonen\'s algorithm is O(n).'}</p>
+   <p><b>Queries.</b> A motif of length m is found in O(m + occ) steps by walking edge labels from the root, so the cost does not depend on n. The ${big.k} queries took ${msf(big.tq)} ms at n = ${big.L.toLocaleString()}, against ${msf(big.tn)} ms for the naive O(nm) scan (${fmt(big.speed,0)}× slower). ${isFinite(big.breakeven)?`Building the tree pays for itself after about ${big.breakeven} motifs.`:''}</p>
+   <p><b>Repeats.</b> The longest repeated substring is the label of the deepest internal node. For your genome it is ${demo.lr?'<b>'+esc(demo.lr)+'</b> ('+demo.lr.length+' bases) at positions ['+demo.lrPos.join(', ')+']':'empty, so no base occurs twice'}. Overlapping repeats count.</p>
+   <p class="hint">Timings come from JavaScript in your browser, so absolute values differ from the Python figures in the manual. The trends are the same.</p>`;
+
+  $('results').innerHTML=`
+   <div class="panel">
+     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+       <h2 style="margin:0">Results</h2>
+       <div class="badges">
+         <span class="badge ${ok.demo?'ok':'no'}">${ok.demo?'✓':'✗'} motif hits = naive scan</span>
+         <span class="badge ${ok.repeat?'ok':'no'}">${ok.repeat?'✓':'✗'} longest repeat verified</span>
+         <span class="badge ${ok.scale?'ok':'no'}">${ok.scale?'✓':'✗'} benchmark results = naive</span>
+       </div>
+     </div>
+   </div>
+   <div class="panel"><h2>Genome with motif hits (${g.length.toLocaleString()} bases)</h2>
+     <div class="genome" aria-label="Genome with highlighted motif occurrences">${genomeHtml(g,demo.hits)}</div>
+     <p class="hint" style="margin:8px 0 14px">Highlighted: every occurrence of any motif.</p>
+     <div class="scroll"><table><thead><tr><th>Motif</th><th>Start positions (0-based)</th><th>Hits</th></tr></thead><tbody>${motifRows}</tbody></table></div>
+   </div>
+   <div class="panel"><h2>Longest repeated substring</h2>
+     <div class="genome">${repHtml(g,demo.lr,demo.lrPos)}</div>
+     <p class="hint" style="margin-top:8px">${demo.lr?`${esc(demo.lr)} (${demo.lr.length} bases) occurs at positions [${demo.lrPos.join(', ')}].`:'No substring occurs twice.'} The tree has ${demo.nodes.toLocaleString()} nodes for this genome.</p>
+   </div>
+   ${demo.outline?`<div class="panel"><details open><summary>Suffix tree of the genome</summary><pre style="max-height:360px;overflow:auto">${esc(demo.outline.join('\n'))}</pre><p class="hint" style="margin-top:8px">Each edge shows its label. Leaves show the start of the suffix they spell. The terminal $ makes every suffix end at a leaf.</p></details></div>`:`<div class="panel"><p class="hint" style="margin:0">The tree outline is shown for genomes of up to 40 bases.</p></div>`}
+   ${stats}
+   <div class="panel"><div class="charts">
+     <div><h2>Build time vs genome length</h2><div class="legend">${sw('var(--c1)','Ukkonen build')}<span>- - - exactly linear</span></div>${c1}</div>
+     <div><h2>${big.k} motif queries vs genome length</h2><div class="legend">${sw('var(--c1)','Suffix tree')}${sw('var(--c2)','Naive scan')}</div>${c2}</div>
+   </div></div>
+   <div class="panel"><h2>Scalability, motifs of length ${cfg.m}</h2><div class="scroll"><table>
+     <thead><tr><th>Length n</th><th>Nodes</th><th>Build ms</th><th>Query ms (${cfg.k})</th><th>Naive ms</th><th>Speed-up</th><th>Break-even motifs</th><th>Verified</th></tr></thead><tbody>${scaleRows}</tbody></table></div>
+     <p class="hint">Break-even is the number of motifs after which build time plus queries is cheaper than naive scans.</p></div>
+   <div class="panel analysis"><h2>Analysis</h2>${analysis}</div>
+   <div class="panel"><h2>Console output</h2><pre>${esc(L.join('\n'))}</pre></div>`;
+}
+
+/* ---------- tooltip ---------- */
+const tip=$('tip');
+document.addEventListener('pointermove',e=>{
+  const t=e.target.closest&&e.target.closest('[data-tip]');
+  if(!t){ tip.style.display='none'; return; }
+  tip.textContent=t.getAttribute('data-tip'); tip.style.display='block';
+  const w=tip.offsetWidth; tip.style.left=Math.min(window.innerWidth-w-8,e.clientX+12)+'px'; tip.style.top=(e.clientY+14)+'px';
+});
+
+/* ---------- form ---------- */
+function readCfg(){
+  const genome=$('genome').value.toUpperCase().replace(/\s+/g,'');
+  if(genome.length<10||genome.length>3000||/[^ACGT]/.test(genome)) throw new Error('Genome must be 10 to 3,000 characters using only A, C, G and T.');
+  const motifs=$('motifs').value.toUpperCase().split(/[,\s]+/).filter(Boolean);
+  if(!motifs.length||motifs.length>12||motifs.some(m=>/[^ACGT]/.test(m)||m.length>genome.length)) throw new Error('Enter 1 to 12 motifs using only A, C, G and T, each no longer than the genome.');
+  const lens=[...new Set($('lens').value.split(/[,\s]+/).filter(Boolean).map(Number))].sort((a,b)=>a-b);
+  if(!lens.length||lens.length>5||lens.some(n=>!Number.isInteger(n)||n<1000||n>300000)) throw new Error('Genome lengths must be 1 to 5 whole numbers between 1,000 and 300,000.');
+  const k=Number($('k').value), m=Number($('m').value), seed=Number($('seed').value);
+  if(!Number.isInteger(k)||k<10||k>1000) throw new Error('Motifs per run must be between 10 and 1,000.');
+  if(!Number.isInteger(m)||m<4||m>30) throw new Error('Motif length must be between 4 and 30.');
+  if(!Number.isInteger(seed)) throw new Error('Seed must be a whole number.');
+  return {genome,motifs,lens,k,m,seed};
+}
+let busy=false;
+async function go(){
+  if(busy) return;
+  $('err').textContent='';
+  let cfg; try{ cfg=readCfg(); }catch(e){ $('err').textContent=e.message; return; }
+  busy=true; $('run').disabled=true; $('run').textContent='Running…';
+  const t0=performance.now();
+  try{
+    const res=await runAll(cfg,s=>{ $('status').textContent=s; });
+    render(res);
+    $('status').textContent=`Done in ${fmt((performance.now()-t0)/1000,1)} s.`;
+  }catch(e){ $('err').textContent='Run failed: '+e.message; $('status').textContent=''; }
+  busy=false; $('run').disabled=false; $('run').textContent='Build and search';
+}
+$('form').addEventListener('submit',e=>{ e.preventDefault(); go(); });
+$('reset').addEventListener('click',()=>{
+  $('genome').value='ATGCGATACGCTTGAGGCTATGCGATACG'; $('motifs').value='ATGCG, GATAC, TTGA, CCCC';
+  $('lens').value='10000, 50000, 200000'; $('k').value='100'; $('m').value='12'; $('seed').value='3'; go();
+});
+go();
+})();
+</script>
+
+</body></html>
